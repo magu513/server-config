@@ -1,0 +1,27 @@
+# yum install -y yum-utils \
+#  device-mapper-persistent-data \
+#  lvm2
+- name: Install device-mapper-persistent-data
+  yum:
+    name: device-mapper-persistent-data
+    state: present
+- name: Install lvm2
+  yum:
+    name: lvm2
+    state: present
+- name: Add docker repository
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/
+
+# don't install yum-utils on the assumption not to use edge/test
+
+- name: Install Docker
+  yum:
+    name: docker-ce
+    state: present
+- name: Run Docker Daemon
+  systemd:
+    name: docker
+    state: restarted
+    enabled: yes
