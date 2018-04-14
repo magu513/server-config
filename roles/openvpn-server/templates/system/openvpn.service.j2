@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenVPN Robust And Highly Flexible Tunneling Application On server
+After=syslog.target network.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/openvpn-server/openvpn.pid
+ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn-server/openvpn.pid --cd {{ easyrsa.path }} --config server.conf
+
+[Install]
+WantedBy=multi-user.target
