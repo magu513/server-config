@@ -1,0 +1,108 @@
+# server setting tasks
+- name: install pip
+  yum:
+    name: python-pip
+    state: present
+- name: upgrade pip
+  command: pip install --upgrade pip
+
+- name: install virtualenv
+  yum:
+    name: python-virtualenv
+    state: present
+- name: install pexpect
+  pip:
+    name: pexpect
+
+- name: Create Directory easyrsa
+  file:
+   path: /opt/easy-rsa/
+   state: directory
+   mode: 0755
+- name: Download easyrsa
+  unarchive:
+    src: https://github.com/OpenVPN/easy-rsa/releases/download/v{{ easyrsa.version }}/EasyRSA-{{ easyrsa.version }}.tgz
+    dest: /opt/easy-rsa/
+    mode: 0755
+    remote_src: yes
+- name: Create SymboricLink
+  file:
+    src: /opt/easy-rsa/EasyRSA-{{ easyrsa.version }}
+    dest: "{{ easyrsa.path }}/{{ easyrsa.link_name }}"
+    state: link
+    force: yes
+- name: Get pki file status
+  stat:
+    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki"
+  register: is_pki_file
+- name: init pki
+  command: ./easyrsa init-pki
+  args:
+    chdir: "{{ easyrsa.path }}/{{ easyrsa.link_name }}"
+  when: not is_pki_file.stat.exists
+
+- name: Get ca.crt status
+  stat:
+    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/ca.crt"
+  register: is_ca_file
+- name: Build CA
+  expect: 
+    command: ./easyrsa build-ca
+    chdir: "{{ easyrsa.path }}/{{ easyrsa.link_name }}"
+    responses:
+      "Enter PEM pass phrase:.*": 
+        - "{{ easyrsa.pass }}"
+      "Verifying - Enter PEM pass phrase:.*":
+        - "{{ easyrsa.pass }}"
+      "Common Name.*:.*": 
+        - "{{ easyrsa.common_name }}"
+  when: not is_ca_file.stat.exists
+
+- name: Get server.key status
+  stat:
+    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/private/server.key"
+  register: is_server_file
+- name: Create server certificate
+  expect:
+    command: ./easyrsa build-server-full server nopass
+    chdir: "{{ easyrsa.path }}/{{ easyrsa.link_name }}"
+    responses:
+      "Enter pass phrase for.*:.*": 
+        - "{{ easyrsa.pass }}"
+  when: not is_server_file.stat.exists
+- name: Get dh.pem status
+  stat:
+    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/dh.pem"
+  register: is_dh_file
+- name: Create DH-key
+  command: ./easyrsa gen-dh
+  args:
+    chdir: "{{ easyrsa.path }}/{{ easyrsa.link_name }}"
+  when: not is_dh_file.stat.exists
+- name: Add config file
+  template:
+    src: server.conf.j2
+    dest: "{{ easyrsa.path }}/server.conf"
+- name: Create ta.key
+  stat:
+    path: "{{ easyrsa.path }}ta.key"
+    register: is_ta_key
+- name: Create pki
+  command: "openvpn --genkey --secret {{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/ta.key"
+  when: no  is_ta_key.stat.exists
+
+- name: Add service file
+  template:
+    src: system/openvpn.service.j2
+    dest: /etc/systemd/system/openvpn.service
+    mode: 0755
+- name: Create Directroy
+  file:
+    path: /var/log/openvpn/
+    mode: 0755
+    state: directory
+- name: Start OpenVPN
+  systemd:
+    name: openvpn
+    state: restarted
+    daemon_reload: yes

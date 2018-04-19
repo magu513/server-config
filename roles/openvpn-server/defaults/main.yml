@@ -1,0 +1,6 @@
+easyrsa:
+  version: 3.0.4
+  path: /etc/openvpn
+  link_name: easy-rsa
+  pass: example
+  common_name: ""
