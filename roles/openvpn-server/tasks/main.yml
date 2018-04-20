@@ -31,9 +31,10 @@
     dest: "{{ easyrsa.path }}/{{ easyrsa.link_name }}"
     state: link
     force: yes
+
 - name: Get pki file status
   stat:
-    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki"
+    path: "{{ openvpn.path }}/pki"
   register: is_pki_file
 - name: init pki
   command: ./easyrsa init-pki
@@ -43,7 +44,7 @@
 
 - name: Get ca.crt status
   stat:
-    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/ca.crt"
+    path: "{{ openvpn.path }}/pki/ca.crt"
   register: is_ca_file
 - name: Build CA
   expect: 
@@ -60,7 +61,7 @@
 
 - name: Get server.key status
   stat:
-    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/private/server.key"
+    path: "{{ openvpn.path }}/pki/private/server.key"
   register: is_server_file
 - name: Create server certificate
   expect:
@@ -72,7 +73,7 @@
   when: not is_server_file.stat.exists
 - name: Get dh.pem status
   stat:
-    path: "{{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/dh.pem"
+    path: "{{ openvpn.path }}/pki/dh.pem"
   register: is_dh_file
 - name: Create DH-key
   command: ./easyrsa gen-dh
@@ -83,14 +84,23 @@
   template:
     src: server.conf.j2
     dest: "{{ easyrsa.path }}/server.conf"
-- name: Create ta.key
+- name: Get ta.key status
   stat:
-    path: "{{ easyrsa.path }}ta.key"
-    register: is_ta_key
-- name: Create pki
+    path: "{{ openvpn.path }}/ta.key"
+  register: is_ta_key
+- name: Create ta.key
   command: "openvpn --genkey --secret {{ easyrsa.path }}/{{ easyrsa.link_name }}/pki/ta.key"
-  when: no  is_ta_key.stat.exists
+  when: not is_ta_key.stat.exists
 
+# mv files
+- name: Move files
+  shell: cp -R {{ easyrsa.path }}/{{ easyrsa.link_name }}/pki {{ openvpn.path }}
+  when: 
+    - not is_pki_file.stat.exists
+    - not is_ca_file.stat.exists
+    - not is_server_file.stat.exists
+    - not is_dh_file.stat.exists
+    - not  is_ta_key.stat.exists
 - name: Add service file
   template:
     src: system/openvpn.service.j2
