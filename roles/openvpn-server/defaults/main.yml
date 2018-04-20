@@ -1,3 +1,5 @@
+openvpn:
+  path: /etc/openvpn
 easyrsa:
   version: 3.0.4
   path: /etc/openvpn
