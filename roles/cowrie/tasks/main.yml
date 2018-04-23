@@ -1,0 +1,35 @@
+- name: Create cowrie user
+  user:
+      name: Cowrie # required. Name of the user to create, remove or modify.
+      group: Cowrie # not required. Optionally sets the user's primary group (takes a group name).
+      state: preset
+
+- name: install dependen tools [python-setuptools]
+  yum:
+    name: python-setuptools
+    state: present
+- name: install dependent tools [python-devel]
+  yum:
+    name: python-devel
+    state: present
+- name: Install pip
+  command: easy_install pip PyCrypto pyasn1
+- name: Install virtualenv
+  command: pip install virtualenv
+- name: Install twisted
+  command: pip install twisted==15.2.0
+- name: Install Cowrie
+  git:
+    repo: https://github.com/micheloosterhof/cowrie.git
+    dest: "{{ cowrie_base }}"
+- name: firewall config
+  firewalld:
+    port: "{{ cowrie.ssh_port }}/tcp"
+    permanent: true
+    state: enabled
+- name: forward port
+  command: firewall-cmd --permanent --add-forward-port=port=22:proto=tcp:toport=40022
+- name:
+  systemd:
+    state: restarted
+    name: firewalld

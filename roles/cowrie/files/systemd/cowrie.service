@@ -1,0 +1,12 @@
+[Unit]
+Description=Cowrie
+
+[Service]
+Type=forking
+ExecStart={{ cowrie_base }}/cowrie/bin/cowrie start
+ExecStop={{ cowrie_base }}/cowrie/bin/cowrie stop
+User=Cowrie
+Group=Cowrie
+
+[Install]
+WantedBy=multi-user.target
