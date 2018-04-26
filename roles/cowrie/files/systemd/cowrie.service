@@ -7,7 +7,7 @@ ExecStart={{ cowrie_base }}/cowrie/bin/cowrie start
 ExecStop={{ cowrie_base }}/cowrie/bin/cowrie stop
 User=Cowrie
 Group=Cowrie
-Environment=PYTHONPATH={{ cowrie_base }}/cowrie/cowrie
+Environment=PYTHONPATH={{ cowrie_base }}/cowrie
 
 [Install]
 WantedBy=multi-user.target

@@ -1,5 +1,0 @@
-cowrie:
-  passwd: xxxx
-  cowrie_base: /any/path
-  ssh_port: 22
-  listen_port: 22

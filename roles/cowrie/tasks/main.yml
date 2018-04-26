@@ -1,8 +1,14 @@
+- name: Create group cowrie
+  group:
+    name: Cowrie
+    state: present
+
 - name: Create cowrie user
   user:
-      name: Cowrie # required. Name of the user to create, remove or modify.
-      group: Cowrie # not required. Optionally sets the user's primary group (takes a group name).
-      state: preset
+    name: Cowrie # required. Name of the user to create, remove or modify.
+    group: Cowrie # not required. Optionally sets the user's primary group (takes a group name).
+    create_home: yes
+    state: present
 
 - name: install dependen tools [python-setuptools]
   yum:
@@ -15,21 +21,72 @@
 - name: Install pip
   command: easy_install pip PyCrypto pyasn1
 - name: Install virtualenv
-  command: pip install virtualenv
+  pip:
+    name: virtualenv
+# pip install -U setuptools
+# yum install openssl-devel
 - name: Install twisted
-  command: pip install twisted==15.2.0
+  pip:
+    name: twisted
 - name: Install Cowrie
+  become: yes
+  become_user: Cowrie
   git:
     repo: https://github.com/micheloosterhof/cowrie.git
-    dest: "{{ cowrie_base }}"
-- name: firewall config
-  firewalld:
-    port: "{{ cowrie.ssh_port }}/tcp"
-    permanent: true
-    state: enabled
-- name: forward port
-  command: firewall-cmd --permanent --add-forward-port=port=22:proto=tcp:toport=40022
-- name:
-  systemd:
-    state: restarted
-    name: firewalld
+    dest: "{{ cowrie.cowrie_base }}/cowrie"
+- name: Check VirtulEnv
+  stat:
+    path: "{{ cowrie.cowrie_base }}/cowrie/cowrie-env"
+  register: cowrie_env
+- name: Init VirtualEnv
+  become: yes
+  become_user: Cowrie
+  command: virtualenv cowrie-env
+  args:
+    chdir: "{{ cowrie.cowrie_base }}/cowrie/"
+  when: not cowrie_env.stat.exists
+- name: pip install
+  # pycparserがrootでないとインストールできない
+  become: yes
+  become_user: Cowrie # rootへ変更
+# ここ以降手動でインストールを実行する
+#
+#   pip:
+#     requirements: "{{ cowrie.cowrie_base }}/cowrie/requirements.txt"
+#     virtualenv: "{{ cowrie.cowrie_base }}/cowrie/cowrie-env"
+# # cowrie直下の全てのパーミッションをCowrieへ変更する
+# - name: Create Key
+#   become: yes
+#   become_user: Cowrie
+#   command: ssh-keygen -t dsa -b 1024 -f ssh_host_dsa.key
+#   args:
+#     chdir: "{{ cowrie.cowrie_base }}/cowrie/data"
+# - name: Copy cowrie config file
+#   template:
+#     src: cowrie/cowrie.cfg.j2
+#     dest: "{{ cowrie.cowrie_base }}/cowrie/"
+#     owner: Cowrie
+#     group: Cowrie
+# - name: Copy service file
+#   copy:
+#     src: systemd/cowrie.service
+#     dest: /etc/systemd/system
+#     owner: root
+#     group: root
+#     mode: 0744
+# - name: firewall config
+#   firewalld:
+#     port: "{{ cowrie.ssh_port }}/tcp"
+#     permanent: true
+#     state: enabled
+# - name: forward port
+#   command: "firewall-cmd --permanent --add-forward-port=port=22:proto=tcp:toport=40022"
+# - name: restart firewalld
+#   systemd:
+#     state: restarted
+#     name: firewalld
+# - name: start cowrie
+#   systemd:
+#     state: restarted
+#     name: cowrie
+#     daemon_reload: yes

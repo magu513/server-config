@@ -1,0 +1,5 @@
+cowrie:
+  passwd: xxxx
+  cowrie_base: /home/Cowrie
+  ssh_port: 22
+  listen_port: 40022

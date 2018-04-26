@@ -1,0 +1,7 @@
+- hosts: server
+  user: test
+  become: yes
+  roles:
+    - cowrie
+#    - openvpn
+#    - openvpn-server
